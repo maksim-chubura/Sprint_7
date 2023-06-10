@@ -3,32 +3,36 @@ import io.qameta.allure.Step;
 import io.qameta.allure.junit4.DisplayName;
 import io.restassured.RestAssured;
 import io.restassured.response.Response;
+import org.example.Courier;
 import org.example.CourierPage;
+import org.example.LogCourier;
 import org.hamcrest.Matchers;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.*;
 
 import static org.hamcrest.Matchers.equalTo;
 
 public class LoginCourierTest {
-    @BeforeClass
-    public static void setUp() {
+    CourierPage courierPage = new CourierPage();
+    Courier courier;
+    LogCourier logCourier;
+    @Before
+    public void setUp() {
         RestAssured.baseURI = "http://qa-scooter.praktikum-services.ru/";
-        String json = "{\"login\": \"Mugiwara\", \"password\": \"482244\", \"firstName\": \"Luffy\"}";
-        CourierPage createCourier = new CourierPage();
-        createCourier.createCourier(json);
+        courier = new Courier("Mugiwara", "482244", "Luffy");
+        courierPage.createCourier(courier);
+        logCourier = new LogCourier("Mugiwara", "482244");
+        courierPage.loginCourier(logCourier);
     }
-    @AfterClass
-    public static void deleteCourier() {
-        String json = "{\"login\": \"Mugiwara\", \"password\": \"482244\"}";
+    @After
+    public void deleteCourier() {
+        logCourier = new LogCourier("Mugiwara", "482244");
         CourierPage courierPage = new CourierPage();
-        courierPage.deleteCourier(json);
+        courierPage.deleteCourier(logCourier);
     }
     @Step("Отправка запроса")
-    public Response sendPostRequestLoginCourier(String json) {
-        CourierPage logInCourier = new CourierPage();
-        Response response = logInCourier.loginCourier(json);
+    public Response sendPostRequestLoginCourier(LogCourier logCourier) {
+        CourierPage loginCourier = new CourierPage();
+        Response response = loginCourier.loginCourier(logCourier);
         return response;
     }
     @Step("Проверка кода ошибки и сообщения")
@@ -49,48 +53,48 @@ public class LoginCourierTest {
     @DisplayName("Check login with all required fields")
     @Description("Проверка логина курьера со всеми необходимыми полями")
     public void checkLoginWithAllRequiredFields() {
-        Response response = sendPostRequestLoginCourier(
-                "{\"login\": \"Mugiwara\", \"password\": \"482244\"}");
+        courierPage.createCourier(courier);
+        Response response = sendPostRequestLoginCourier(logCourier);
         checkCorrectLogin(response, 200);
     }
     @Test
     @DisplayName("Check login courier with wrong login")
     @Description("Проверка попытки залогиниться с неправильным логином")
     public void checkLoginWithWrongLogin() {
-        Response response = sendPostRequestLoginCourier(
-                "{\"login\": \"Mugivara\", \"password\": \"482244\"}");
+        logCourier.setLogin("Mugivara");
+        Response response = sendPostRequestLoginCourier(logCourier);
         checkStatusCodeAndBody(response, 404, "Учетная запись не найдена");
     }
     @Test
     @DisplayName("Check login courier with wrong password")
     @Description("Проверка попытки залогиниться с неправильным паролем")
     public void checkLoginWithWrongPass() {
-        Response response = sendPostRequestLoginCourier(
-                "{\"login\": \"Mugiwara\", \"password\": \"12345\"}");
+        logCourier.setPassword("12345");
+        Response response = sendPostRequestLoginCourier(logCourier);
         checkStatusCodeAndBody(response, 404, "Учетная запись не найдена");
     }
     @Test
     @DisplayName("Check login without login")
     @Description("Проверка попытки залогиниться с пустым логином")
     public void checkLoginWithoutLogin() {
-        Response response = sendPostRequestLoginCourier(
-                "{\"login\": \"\", \"password\": \"482244\"}");
+        logCourier.setLogin("");
+        Response response = sendPostRequestLoginCourier(logCourier);
         checkStatusCodeAndBody(response, 400, "Недостаточно данных для входа");
     }
     @Test
     @DisplayName("Check login without password")
     @Description("Проверка попытки залогиниться с пустым паролем")
     public void checkLoginWithoutPass() {
-        Response response = sendPostRequestLoginCourier(
-                "{\"login\": \"Mugiwara\", \"password\": \"\"}");
+        logCourier.setPassword("");
+        Response response = sendPostRequestLoginCourier(logCourier);
         checkStatusCodeAndBody(response, 400, "Недостаточно данных для входа");
     }
     @Test
     @DisplayName("Check login with non existent user")
     @Description("Проверка попытки залогиниться несуществующим пользователем")
     public void checkLoginWithNonExistentUser() {
-        Response response = sendPostRequestLoginCourier(
-                "{\"login\": \"roronoa_zoro\", \"password\": \"zYV38q7Y\"}");
+        logCourier = new LogCourier("roronoa_zoro", "zYV38q7Y");
+        Response response = sendPostRequestLoginCourier(logCourier);
         checkStatusCodeAndBody(response, 404, "Учетная запись не найдена");
     }
 }

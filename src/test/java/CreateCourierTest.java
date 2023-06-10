@@ -3,7 +3,9 @@ import io.qameta.allure.Step;
 import io.qameta.allure.junit4.DisplayName;
 import io.restassured.RestAssured;
 import io.restassured.response.Response;
+import org.example.Courier;
 import org.example.CourierPage;
+import org.example.LogCourier;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -11,20 +13,25 @@ import org.junit.Test;
 import static org.hamcrest.Matchers.equalTo;
 
 public class CreateCourierTest {
+    CourierPage courierPage;
+    Courier courier;
+    LogCourier logCourier;
     @Before
     public void setUp() {
         RestAssured.baseURI = "http://qa-scooter.praktikum-services.ru/";
+        courier = new Courier("Mugiwara", "482244", "Luffy");
+        courierPage = new CourierPage();
     }
     @After
     public void deleteCourier() {
-        String json = "{\"login\": \"Mugiwara\", \"password\": \"482244\"}";
+        logCourier = new LogCourier("Mugiwara", "482244");
         CourierPage courierPage = new CourierPage();
-        courierPage.deleteCourier(json);
+        courierPage.deleteCourier(logCourier);
     }
     @Step("Отправка запроса")
-    public Response sendRequestCreateCourier(String json) {
+    public Response sendRequestCreateCourier(Courier courier) {
         CourierPage createCourier = new CourierPage();
-        Response response = createCourier.createCourier(json);
+        Response response = createCourier.createCourier(courier);
         return response;
     }
     @Step("Проверка кода ошибки и сообщения")
@@ -39,8 +46,7 @@ public class CreateCourierTest {
     @DisplayName("Check create courier with correct status response")
     @Description("Проверка создания курьера с корректным ответом статуса")
     public void checkCreateCourierWithCorrectStatusResponse() {
-        Response response = sendRequestCreateCourier(
-                "{\"login\": \"Mugiwara\", \"password\": \"482244\", \"firstName\": \"Luffy\"}");
+        Response response = sendRequestCreateCourier(courier);
         response
                 .then()
                 .assertThat()
@@ -50,17 +56,16 @@ public class CreateCourierTest {
     @DisplayName("Check create two identical couriers")
     @Description("Проверка создания двух идентичных курьеров")
     public void checkCreateTwoIdenticalCouriers() {
-        sendRequestCreateCourier(
-                "{\"login\": \"Mugiwara\", \"password\": \"482244\", \"firstName\": \"Luffy\"}");
-        Response response = sendRequestCreateCourier(
-                "{\"login\": \"Mugiwara\", \"password\": \"482244\", \"firstName\": \"Luffy\"}");
+        sendRequestCreateCourier(courier);
+        Response response = courierPage.createCourier(courier);
         checkStatusCodeAndMessage(response, 409, "Этот логин уже используется. Попробуйте другой.");
     }
     @Test
     @DisplayName("Check create courier without login")
     @Description("Проверка создания курьера без логина")
     public void checkCreateCourierWithoutLogin() {
-        Response response = sendRequestCreateCourier("{\"password\": \"482244\", \"firstName\": \"Luffy\"}");
+        courier.setLogin("");
+        Response response = sendRequestCreateCourier(courier);
         checkStatusCodeAndMessage(response, 400, "Недостаточно данных для создания учетной записи");
     }
 
@@ -68,15 +73,15 @@ public class CreateCourierTest {
     @DisplayName("Check create courier without password")
     @Description("Проверка создания курьера без пароля")
     public void checkCreateCourierWithoutPass() {
-        Response response = sendRequestCreateCourier("{\"login\": \"Mugiwara\", \"firstName\": \"Luffy\"}");
+        courier.setPassword("");
+        Response response = sendRequestCreateCourier(courier);
         checkStatusCodeAndMessage(response, 400, "Недостаточно данных для создания учетной записи");
     }
     @Test
     @DisplayName("Check create courier with correct status code")
     @Description("Проверка статус-кода при корректном создании пользователя")
     public void checkCreateCourierWithCorrectStatusCode() {
-        Response response = sendRequestCreateCourier(
-                "{\"login\": \"Mugiwara\", \"password\": \"482244\", \"firstName\": \"Luffy\"}");
+        Response response = sendRequestCreateCourier(courier);
         response
                 .then()
                 .assertThat()
@@ -86,8 +91,9 @@ public class CreateCourierTest {
     @DisplayName("Check create couriers with identical login")
     @Description("Проверка создания двух курьеров с одинаковым логином")
     public void checkCreateCouriersWithIdenticalLogin() {
-        sendRequestCreateCourier("{\"login\": \"Mugiwara\", \"password\": \"482244\", \"firstName\": \"Monkey D.\"}");
-        Response response = sendRequestCreateCourier("{\"login\": \"Mugiwara\", \"password\": \"989644165\"}");
+        sendRequestCreateCourier(courier);
+        courier.setPassword("989644165");
+        Response response = sendRequestCreateCourier(courier);
         checkStatusCodeAndMessage(response, 409, "Этот логин уже используется. Попробуйте другой.");
     }
 }

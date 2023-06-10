@@ -1,31 +1,35 @@
 package org.example;
 
+import io.qameta.allure.Step;
 import io.restassured.response.Response;
 
 import static io.restassured.RestAssured.given;
 
 public class CourierPage {
-    public Response createCourier(String json) {
+    @Step("Создание курьера")
+    public Response createCourier(Courier courier) {
         return given()
                 .header("Content-type", "application/json")
                 .and()
-                .body(json)
+                .body(courier)
                 .when()
                 .post("/api/v1/courier");
     }
-    public Response loginCourier(String json) {
+    @Step("Авторизация курьера")
+    public Response loginCourier(LogCourier logCourier) {
         return given()
                 .header("Content-type", "application/json")
                 .and()
-                .body(json)
+                .body(logCourier)
                 .when()
                 .post("/api/v1/courier/login");
     }
-    public void deleteCourier(String json) {
+    @Step("Удаление курьера")
+    public void deleteCourier(LogCourier logCourier) {
         Response response = given()
                 .header("Content-type", "application/json")
                 .and()
-                .body(json)
+                .body(logCourier)
                 .when()
                 .post("/api/v1/courier/login");
         int code = response.statusCode();
